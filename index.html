@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>霧の廃墟 ―八つの遺品―</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#05080b;
+  --mist:#9aa8a1;
+  --amber:#e6c584;
+  --phos:#8fe0b0;
+  --blood:#8a3436;
+  --uitext:#b9c4bd;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100dvh;overflow:hidden;background:var(--ink);
+  font-family:'BIZ UDPGothic',sans-serif;color:var(--uitext);
+  touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+#wrap{position:fixed;inset:0;width:100%;height:100dvh}
+canvas#cv{position:absolute;inset:0;width:100%;height:100%;display:block;background:var(--ink)}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s}
+#hud.on{opacity:1}
+#relics{position:absolute;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  display:flex;gap:9px;padding:8px 14px;border-radius:20px;
+  background:rgba(5,10,12,.55);border:1px solid rgba(154,168,161,.18)}
+#relics span{width:13px;height:13px;transform:rotate(45deg);
+  border:1px solid rgba(154,168,161,.5);background:transparent;transition:all .6s}
+#relics span.got{background:var(--phos);border-color:var(--phos);
+  box-shadow:0 0 8px rgba(143,224,176,.8)}
+#areaName{position:absolute;top:16%;left:0;right:0;text-align:center;
+  font-family:'Shippori Mincho B1',serif;font-size:clamp(20px,3.4vw,32px);
+  letter-spacing:.35em;text-indent:.35em;color:var(--mist);
+  text-shadow:0 0 18px rgba(0,0,0,.9);opacity:0;transition:opacity 1s}
+#areaName.show{opacity:.9}
+#toast{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);
+  max-width:min(560px,86vw);padding:12px 22px;border-radius:6px;text-align:center;
+  background:rgba(5,10,12,.78);border:1px solid rgba(154,168,161,.25);
+  font-size:clamp(13px,2.2vw,16px);line-height:1.8;opacity:0;transition:opacity .5s}
+#toast.show{opacity:1}
+#toast .iname{color:var(--phos);font-weight:700}
+
+/* ---------- 操作系 ---------- */
+#stick{position:absolute;left:calc(22px + env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));
+  width:128px;height:128px;border-radius:50%;pointer-events:auto;
+  background:rgba(154,168,161,.06);border:1px solid rgba(154,168,161,.22)}
+#stickThumb{position:absolute;left:50%;top:50%;width:54px;height:54px;border-radius:50%;
+  transform:translate(-50%,-50%);background:rgba(154,168,161,.22);
+  border:1px solid rgba(154,168,161,.4)}
+#btnSearch{position:absolute;right:calc(24px + env(safe-area-inset-right));bottom:calc(40px + env(safe-area-inset-bottom));
+  width:96px;height:96px;border-radius:50%;pointer-events:auto;
+  font-family:'BIZ UDPGothic',sans-serif;font-size:17px;font-weight:700;color:#0a1410;
+  background:radial-gradient(circle at 35% 30%,#b5f0cf,var(--phos));
+  border:none;box-shadow:0 0 22px rgba(143,224,176,.55);
+  opacity:0;transform:scale(.6);transition:opacity .3s,transform .3s;cursor:pointer}
+#btnSearch.on{opacity:1;transform:scale(1)}
+@media (hover:hover) and (pointer:fine){ #stick{display:none} }
+
+/* ---------- タイトル / エンディング ---------- */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:26px;padding:24px;text-align:center;background:var(--ink);z-index:10;
+  transition:opacity 2.2s}
+.screen.hidden{opacity:0;pointer-events:none}
+#title h1{font-family:'Shippori Mincho B1',serif;font-weight:800;
+  font-size:clamp(40px,9vw,84px);letter-spacing:.22em;text-indent:.22em;color:#cdd8d1;
+  text-shadow:0 0 30px rgba(154,168,161,.35);animation:breathe 6s ease-in-out infinite}
+#title .sub{font-family:'Shippori Mincho B1',serif;font-size:clamp(15px,2.6vw,20px);
+  letter-spacing:.5em;text-indent:.5em;color:var(--blood);filter:brightness(1.5)}
+#title p.desc{font-size:clamp(12px,2vw,14px);line-height:2.1;color:#7d8a83;max-width:520px}
+@keyframes breathe{0%,100%{opacity:.85}50%{opacity:1}}
+button.big{pointer-events:auto;cursor:pointer;padding:16px 52px;min-height:52px;
+  font-family:'Shippori Mincho B1',serif;font-size:clamp(16px,2.6vw,20px);letter-spacing:.3em;text-indent:.3em;
+  color:#cdd8d1;background:transparent;border:1px solid rgba(154,168,161,.5);border-radius:2px;
+  transition:all .4s}
+button.big:hover{background:rgba(154,168,161,.12);box-shadow:0 0 24px rgba(154,168,161,.25)}
+#ending{opacity:0}
+#ending.shown{opacity:1}
+#ending h2{font-family:'Shippori Mincho B1',serif;font-size:clamp(26px,5vw,44px);
+  letter-spacing:.3em;text-indent:.3em;color:#cdd8d1}
+#ending p{font-family:'Shippori Mincho B1',serif;font-size:clamp(14px,2.4vw,18px);
+  line-height:2.4;color:#93a29a;max-width:600px}
+#endItems{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:640px}
+#endItems span{font-size:12px;color:var(--phos);border:1px solid rgba(143,224,176,.35);
+  padding:5px 12px;border-radius:14px}
+.keyhint{font-size:11px;color:#5c6862;letter-spacing:.1em}
+@media (prefers-reduced-motion:reduce){
+  #title h1{animation:none}
+  .screen{transition-duration:.5s}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div id="relics"></div>
+    <div id="areaName"></div>
+    <div id="toast"></div>
+    <div id="stick"><div id="stickThumb"></div></div>
+    <button id="btnSearch" aria-label="調べる">調べる</button>
+  </div>
+
+  <div id="title" class="screen">
+    <h1>霧の廃墟</h1>
+    <div class="sub">― 八つの遺品 ―</div>
+    <p class="desc">
+      深い霧の夜、あなたは打ち捨てられた療養院跡に迷いこんだ。<br>
+      ここで消えた八人の「遺品」をすべて見つけなければ、<br>
+      門は二度と開かないという。<br><br>
+      移動：WASD / 矢印キー（スマホ・タブレットは左下スティック）<br>
+      調べる：Eキー または「調べる」ボタン
+    </p>
+    <button class="big" id="btnStart">霧 の 中 へ</button>
+    <div class="keyhint">※音が鳴ります。イヤホン推奨。</div>
+  </div>
+
+  <div id="ending" class="screen hidden">
+    <h2>霧 は 晴 れ た</h2>
+    <p id="endText">
+      八つの遺品を胸に抱き、あなたは軋む門をくぐった。<br>
+      背後で、長いあいだ誰にも忘れられていた者たちの気配が、<br>
+      静かにほどけて消えていく。<br><br>
+      ――もう、この霧の中で迷う者はいない。
+    </p>
+    <div id="endItems"></div>
+    <button class="big" id="btnRetry">も う 一 度</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+(function(){
+const $ = id => document.getElementById(id);
+const TAU = Math.PI*2;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp = (a,b,t)=>a+(b-a)*t;
+const dist = (x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= ワールド定義 ================= */
+const W=1920, H=1440, AW=480, AH=720, T=24;
+
+const AREAS = [
+  '崩れた門','枯れた中庭','旧礼拝堂','鐘楼の残骸',
+  '崩落した回廊','図書室跡','地下貯蔵庫','霊安室跡'
+];
+
+const ITEMS = [
+  {name:'錆びた鍵',      clue:'「…最初の扉は、もう開かない」と札が付いている。', x:360,  y:180},
+  {name:'日記の切れ端',  clue:'「霧が出た夜、みんな居なくなった――」',           x:720,  y:300},
+  {name:'銀のロケット',  clue:'中には色褪せた家族の写真が入っていた。',           x:1200, y:160},
+  {name:'折れた懐中時計',clue:'針は午前二時を指したまま、止まっている。',         x:1800, y:360},
+  {name:'蝋の燭台',      clue:'芯がまだ温かい。……誰かが、いた？',               x:160,  y:1100},
+  {name:'色褪せた写真',  clue:'八人が、門の前で笑っている。',                     x:840,  y:1300},
+  {name:'骨の御守り',    clue:'裏に「かえりみちを わすれるな」と刻まれている。',   x:1160, y:1000},
+  {name:'血染めのリボン',clue:'拾った瞬間、どこか遠くで鐘が鳴った。',             x:1760, y:1320}
+];
+ITEMS.forEach(it=>it.got=false);
+
+/* 壁の生成 */
+const walls=[];
+// 外周
+walls.push({x:0,y:0,w:W,h:T},{x:0,y:H-T,w:W,h:T},{x:0,y:0,w:T,h:H},{x:W-T,y:0,w:T,h:H});
+// 縦の内壁（各行の中央に幅140の戸口）
+const GAP=140;
+for(const bx of [480,960,1440]){
+  const x=bx-T/2;
+  for(const [y0,y1] of [[0,720],[720,1440]]){
+    const c=(y0+y1)/2;
+    walls.push({x, y:y0, w:T, h:(c-GAP/2)-y0});
+    walls.push({x, y:c+GAP/2, w:T, h:y1-(c+GAP/2)});
+  }
+}
+// 横の内壁（各列の中央に戸口）
+{
+  const y=720-T/2;
+  let prev=0;
+  for(const c of [240,720,1200,1680]){
+    walls.push({x:prev, y, w:(c-GAP/2)-prev, h:T});
+    prev=c+GAP/2;
+  }
+  walls.push({x:prev, y, w:W-prev, h:T});
+}
+// 瓦礫（崩れた柱など）
+const debris=[
+  {x:120,y:240,w:50,h:40},{x:600,y:160,w:44,h:60},{x:860,y:520,w:60,h:44},
+  {x:1300,y:320,w:50,h:50},{x:1560,y:140,w:44,h:44},{x:1680,y:560,w:60,h:40},
+  {x:300,y:900,w:44,h:70},{x:120,y:1300,w:60,h:44},{x:640,y:1160,w:50,h:44},
+  {x:1340,y:1240,w:44,h:44},{x:1040,y:860,w:60,h:40},{x:1560,y:1040,w:44,h:60}
+];
+const solids = walls.concat(debris);
+
+/* 出口の門（エリア0上部） */
+const GATE={x:240, y:64, r:80};
+
+/* ================= 状態 ================= */
+const player={x:240,y:600,r:13,ang:-TAU/4,speed:220};
+const state={
+  running:false, over:false,
+  got:0, areaIdx:-1,
+  nearItem:null, nearGate:false,
+  lightScale:1, flickerT:0, blackout:0, blackoutDone:false,
+  shadow:null, nextShadow:0, nextAmb:0,
+  camX:0, camY:0, time:0
+};
+
+/* ================= 入力 ================= */
+const keys={};
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(state.running && !state.over && (e.key.toLowerCase()==='e'||e.key===' '||e.key==='Enter')){
+    e.preventDefault(); doSearch();
+  }
+});
+addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+
+const stickVec={x:0,y:0};
+(function(){
+  const stick=$('stick'), thumb=$('stickThumb');
+  if(!stick) return;
+  let pid=null, cx=0, cy=0;
+  const R=64;
+  stick.addEventListener('pointerdown',e=>{
+    pid=e.pointerId; stick.setPointerCapture(pid);
+    const b=stick.getBoundingClientRect(); cx=b.left+b.width/2; cy=b.top+b.height/2;
+    move(e);
+  });
+  stick.addEventListener('pointermove',e=>{ if(e.pointerId===pid) move(e); });
+  const end=e=>{
+    if(e.pointerId!==pid) return;
+    pid=null; stickVec.x=0; stickVec.y=0;
+    thumb.style.transform='translate(-50%,-50%)';
+  };
+  stick.addEventListener('pointerup',end);
+  stick.addEventListener('pointercancel',end);
+  function move(e){
+    let dx=e.clientX-cx, dy=e.clientY-cy;
+    const d=Math.hypot(dx,dy);
+    if(d>R){ dx=dx/d*R; dy=dy/d*R; }
+    thumb.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    const dead=10, dd=Math.hypot(dx,dy);
+    if(dd<dead){ stickVec.x=0; stickVec.y=0; }
+    else{ stickVec.x=dx/R; stickVec.y=dy/R; }
+  }
+})();
+
+/* ================= オーディオ ================= */
+const AU={
+  ctx:null, master:null, ok:false, noiseBuf:null,
+  nextBeat:0, nextStep:0,
+  start(){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return;
+      this.ctx=new AC();
+      const c=this.ctx;
+      this.master=c.createGain(); this.master.gain.value=0.9;
+      const comp=c.createDynamicsCompressor();
+      this.master.connect(comp); comp.connect(c.destination);
+      // ノイズバッファ
+      const len=c.sampleRate*2, buf=c.createBuffer(1,len,c.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+      this.noiseBuf=buf;
+      // 低いドローン
+      const o1=c.createOscillator(), o2=c.createOscillator();
+      o1.type='sawtooth'; o1.frequency.value=52;
+      o2.type='sine';     o2.frequency.value=53.3;
+      const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=200;
+      const dg=c.createGain(); dg.gain.value=0.05;
+      o1.connect(lp); o2.connect(lp); lp.connect(dg); dg.connect(this.master);
+      const lfo=c.createOscillator(); lfo.frequency.value=0.07;
+      const lg=c.createGain(); lg.gain.value=0.02;
+      lfo.connect(lg); lg.connect(dg.gain);
+      o1.start(); o2.start(); lfo.start();
+      // 風
+      const wn=c.createBufferSource(); wn.buffer=buf; wn.loop=true;
+      const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=420; bp.Q.value=0.7;
+      const wg=c.createGain(); wg.gain.value=0.035;
+      wn.connect(bp); bp.connect(wg); wg.connect(this.master);
+      const wl=c.createOscillator(); wl.frequency.value=0.05;
+      const wlg=c.createGain(); wlg.gain.value=220;
+      wl.connect(wlg); wlg.connect(bp.frequency); wl.start();
+      wn.start();
+      this.ok=true;
+    }catch(e){ this.ok=false; }
+  },
+  env(g,t0,peak,att,rel){
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(peak,t0+att);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+att+rel);
+  },
+  tone(freq,peak,att,rel,type='sine',slide=null){
+    if(!this.ok) return;
+    try{
+      const c=this.ctx,t=c.currentTime;
+      const o=c.createOscillator(),g=c.createGain();
+      o.type=type; o.frequency.setValueAtTime(freq,t);
+      if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+att+rel);
+      this.env(g,t,peak,att,rel);
+      o.connect(g); g.connect(this.master);
+      o.start(t); o.stop(t+att+rel+0.1);
+    }catch(e){}
+  },
+  noise(peak,att,rel,fType,fFreq,q=1){
+    if(!this.ok) return;
+    try{
+      const c=this.ctx,t=c.currentTime;
+      const s=c.createBufferSource(); s.buffer=this.noiseBuf;
+      const f=c.createBiquadFilter(); f.type=fType; f.frequency.value=fFreq; f.Q.value=q;
+      const g=c.createGain();
+      this.env(g,t,peak,att,rel);
+      s.connect(f); f.connect(g); g.connect(this.master);
+      s.start(t); s.stop(t+att+rel+0.1);
+    }catch(e){}
+  },
+  beat(){ // 心音 ドッ・ドッ
+    this.tone(58,0.35,0.012,0.10,'sine',34);
+    if(!this.ok) return;
+    try{
+      const c=this.ctx;
+      setTimeout(()=>this.tone(52,0.26,0.012,0.09,'sine',30),140);
+    }catch(e){}
+  },
+  step(){ this.noise(0.05,0.005,0.05,'lowpass',260); },
+  creak(){ this.tone(170,0.045,0.25,0.6,'sawtooth',85); },
+  whisper(){ this.noise(0.05,0.5,1.1,'bandpass',1400,4); this.noise(0.03,0.7,0.9,'bandpass',2300,6); },
+  drip(){ this.tone(900,0.06,0.004,0.12,'sine',420); },
+  pickup(){
+    this.tone(392,0.14,0.01,0.5,'sine');
+    this.tone(311,0.12,0.01,0.9,'sine');
+    this.noise(0.05,0.01,0.4,'highpass',3000);
+  },
+  bell(){
+    this.tone(220,0.22,0.01,2.6,'sine');
+    this.tone(551,0.07,0.01,1.8,'sine');
+    this.tone(146,0.10,0.01,3.0,'sine');
+  }
+};
+
+/* ================= キャンバス ================= */
+const cv=$('cv'), ctx=cv.getContext('2d');
+let vw=0, vh=0, dpr=1;
+const dark=document.createElement('canvas'), dk=dark.getContext('2d');
+const vig=document.createElement('canvas');
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  vw=window.innerWidth; vh=window.innerHeight;
+  cv.width=Math.round(vw*dpr); cv.height=Math.round(vh*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  dark.width=vw; dark.height=vh;
+  // ビネット
+  vig.width=vw; vig.height=vh;
+  const vc=vig.getContext('2d');
+  const g=vc.createRadialGradient(vw/2,vh/2,Math.min(vw,vh)*0.35, vw/2,vh/2, Math.max(vw,vh)*0.72);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,0.72)');
+  vc.fillStyle=g; vc.fillRect(0,0,vw,vh);
+}
+addEventListener('resize',resize);
+resize();
+
+/* 床＋壁の事前描画 */
+const worldCv=document.createElement('canvas');
+worldCv.width=W; worldCv.height=H;
+(function paintWorld(){
+  const c=worldCv.getContext('2d');
+  c.fillStyle='#101a17'; c.fillRect(0,0,W,H);
+  // 石畳の目地
+  c.strokeStyle='rgba(0,0,0,0.35)'; c.lineWidth=2;
+  for(let x=0;x<=W;x+=96){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,H); c.stroke(); }
+  for(let y=0;y<=H;y+=96){ c.beginPath(); c.moveTo(0,y); c.lineTo(W,y); c.stroke(); }
+  // 染み・苔
+  for(let i=0;i<260;i++){
+    const x=Math.random()*W, y=Math.random()*H, r=8+Math.random()*46;
+    const g=c.createRadialGradient(x,y,0,x,y,r);
+    const mossy=Math.random()<0.5;
+    g.addColorStop(0, mossy?'rgba(38,66,52,0.25)':'rgba(0,0,0,0.28)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,TAU); c.fill();
+  }
+  // 壁
+  for(const w of walls){
+    c.fillStyle='#2b3833'; c.fillRect(w.x,w.y,w.w,w.h);
+    c.fillStyle='rgba(0,0,0,0.35)'; c.fillRect(w.x,w.y+w.h-5,w.w,5);
+    c.fillStyle='rgba(180,196,188,0.10)'; c.fillRect(w.x,w.y,w.w,4);
+  }
+  // 瓦礫
+  for(const d of debris){
+    c.fillStyle='#243029'; c.fillRect(d.x,d.y,d.w,d.h);
+    c.fillStyle='rgba(180,196,188,0.08)'; c.fillRect(d.x,d.y,d.w,4);
+    c.strokeStyle='rgba(0,0,0,0.5)'; c.strokeRect(d.x+.5,d.y+.5,d.w-1,d.h-1);
+  }
+  // 門（閉じた姿）
+  c.fillStyle='#1a2420';
+  c.fillRect(GATE.x-70, 4, 140, T-4);
+  c.strokeStyle='rgba(180,196,188,0.18)'; c.lineWidth=3;
+  c.beginPath(); c.arc(GATE.x, T, 70, Math.PI, 0); c.stroke();
+})();
+
+/* 霧タイル */
+const fogCv=document.createElement('canvas');
+fogCv.width=512; fogCv.height=512;
+(function paintFog(){
+  const c=fogCv.getContext('2d');
+  for(let i=0;i<46;i++){
+    const x=Math.random()*512, y=Math.random()*512, r=40+Math.random()*110;
+    const g=c.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(176,190,184,0.10)');
+    g.addColorStop(1,'rgba(176,190,184,0)');
+    c.fillStyle=g;
+    // タイル境界をまたいでも継ぎ目が出ないよう4方向に複製
+    for(const ox of [-512,0,512]) for(const oy of [-512,0,512]){
+      c.beginPath(); c.arc(x+ox,y+oy,r,0,TAU); c.fill();
+    }
+  }
+})();
+
+/* ================= UI ================= */
+const toastEl=$('toast');
+let toastTimer=null;
+function toast(html,ms=3400){
+  toastEl.innerHTML=html;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toastEl.classList.remove('show'),ms);
+}
+const areaEl=$('areaName');
+let areaTimer=null;
+function showArea(name){
+  areaEl.textContent=name;
+  areaEl.classList.add('show');
+  clearTimeout(areaTimer);
+  areaTimer=setTimeout(()=>areaEl.classList.remove('show'),2600);
+}
+const relicsEl=$('relics');
+for(let i=0;i<8;i++){ relicsEl.appendChild(document.createElement('span')); }
+function refreshRelics(){
+  const sp=relicsEl.children;
+  ITEMS.forEach((it,i)=>sp[i].classList.toggle('got',it.got));
+}
+
+/* ================= ロジック ================= */
+function collides(px,py){
+  const r=player.r;
+  for(const s of solids){
+    if(px+r>s.x && px-r<s.x+s.w && py+r>s.y && py-r<s.y+s.h) return true;
+  }
+  return false;
+}
+
+function doSearch(){
+  if(!state.running||state.over) return;
+  if(state.nearItem){
+    const it=state.nearItem;
+    it.got=true; state.got++;
+    state.nearItem=null;
+    refreshRelics();
+    AU.pickup();
+    toast(`<span class="iname">◆ ${it.name}</span> を見つけた。<br>${it.clue}`);
+    if(state.got===8){
+      setTimeout(()=>{
+        AU.bell();
+        toast('遠くで、重い門の軋む音がした。<br>――<span class="iname">崩れた門</span>へ戻ろう。',5200);
+      },2600);
+    }
+  }else if(state.nearGate && state.got===8){
+    startEnding();
+  }
+}
+$('btnSearch').addEventListener('click',doSearch);
+
+function update(dt){
+  state.time+=dt;
+  // --- 移動 ---
+  let mx=0,my=0;
+  if(keys['w']||keys['arrowup'])    my-=1;
+  if(keys['s']||keys['arrowdown'])  my+=1;
+  if(keys['a']||keys['arrowleft'])  mx-=1;
+  if(keys['d']||keys['arrowright']) mx+=1;
+  mx+=stickVec.x; my+=stickVec.y;
+  const ml=Math.hypot(mx,my);
+  let moving=false;
+  if(ml>0.01){
+    mx/=Math.max(ml,1); my/=Math.max(ml,1);
+    const nx=player.x+mx*player.speed*dt;
+    const ny=player.y+my*player.speed*dt;
+    if(!collides(nx,player.y)) player.x=nx;
+    if(!collides(player.x,ny)) player.y=ny;
+    player.x=clamp(player.x,T+player.r,W-T-player.r);
+    player.y=clamp(player.y,T+player.r,H-T-player.r);
+    // 向きをなめらかに補間
+    const target=Math.atan2(my,mx);
+    let da=target-player.ang;
+    while(da>Math.PI)da-=TAU; while(da<-Math.PI)da+=TAU;
+    player.ang+=da*Math.min(1,dt*10);
+    moving=true;
+  }
+  // --- エリア表示 ---
+  const ai=Math.floor(player.y/AH)*4+Math.floor(player.x/AW);
+  if(ai!==state.areaIdx && ai>=0 && ai<8){
+    state.areaIdx=ai;
+    showArea(AREAS[ai]);
+  }
+  // --- アイテム近接 ---
+  state.nearItem=null;
+  let nearest=1e9;
+  for(const it of ITEMS){
+    if(it.got) continue;
+    const d=dist(player.x,player.y,it.x,it.y);
+    if(d<nearest) nearest=d;
+    if(d<90) state.nearItem=it;
+  }
+  state.nearGate = state.got===8 && dist(player.x,player.y,GATE.x,GATE.y+40)<GATE.r+40;
+  $('btnSearch').classList.toggle('on', !!state.nearItem || state.nearGate);
+
+  // --- 明かりの揺らぎ ---
+  state.flickerT-=dt;
+  if(state.flickerT<=0){
+    state.flickerT=0.06+Math.random()*0.1;
+    const base=reduceMotion?0.99:0.93+Math.random()*0.1;
+    state.lightScale=lerp(state.lightScale,base,0.6);
+    if(!reduceMotion && Math.random()<0.02) state.lightScale=0.62; // ふっと暗くなる
+  }
+  // 4つ集めた時の暗転イベント
+  if(!state.blackoutDone && state.got>=4){
+    state.blackoutDone=true;
+    state.blackout=1.4;
+    AU.whisper();
+    setTimeout(()=>toast('……いま、誰かが後ろを通らなかったか？',3600),1500);
+  }
+  if(state.blackout>0) state.blackout-=dt;
+
+  // --- 影のイベント ---
+  if(state.got>=1 && state.time>state.nextShadow && !state.shadow){
+    state.nextShadow=state.time+20+Math.random()*25;
+    state.shadow={t:0, dur:3.2, y:vh*(0.25+Math.random()*0.4), dir:Math.random()<0.5?1:-1};
+    AU.whisper();
+  }
+  if(state.shadow){
+    state.shadow.t+=dt;
+    if(state.shadow.t>state.shadow.dur) state.shadow=null;
+  }
+  // --- 環境音 ---
+  if(AU.ok){
+    const now=AU.ctx.currentTime;
+    if(state.time>state.nextAmb){
+      state.nextAmb=state.time+10+Math.random()*14;
+      const r=Math.random();
+      if(r<0.4) AU.creak(); else if(r<0.7) AU.drip(); else AU.whisper();
+    }
+    // 心音（未回収アイテムに近いほど速く）
+    if(nearest<280){
+      const k=1-nearest/280; // 0..1
+      if(now>=AU.nextBeat){
+        AU.beat();
+        AU.nextBeat=now+lerp(1.15,0.5,k);
+      }
+    }
+    if(moving && now>=AU.nextStep){
+      AU.step();
+      AU.nextStep=now+0.34;
+    }
+  }
+  // --- カメラ ---
+  state.camX=clamp(player.x-vw/2,0,Math.max(0,W-vw));
+  state.camY=clamp(player.y-vh/2,0,Math.max(0,H-vh));
+}
+
+/* ================= 描画 ================= */
+function render(){
+  const cx=state.camX, cy=state.camY;
+  ctx.fillStyle='#05080b';
+  ctx.fillRect(0,0,vw,vh);
+  ctx.drawImage(worldCv,-cx,-cy);
+
+  // 門が開いた表示
+  if(state.got===8){
+    const gx=GATE.x-cx, gy=GATE.y-cy;
+    const p=0.5+0.5*Math.sin(state.time*2.4);
+    const g=ctx.createRadialGradient(gx,gy,0,gx,gy,90);
+    g.addColorStop(0,`rgba(143,224,176,${0.35+0.2*p})`);
+    g.addColorStop(1,'rgba(143,224,176,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(gx,gy,90,0,TAU); ctx.fill();
+  }
+
+  // アイテム（燐光の芯・暗闇の下層）
+  for(const it of ITEMS){
+    if(it.got) continue;
+    const x=it.x-cx, y=it.y-cy;
+    if(x<-60||x>vw+60||y<-60||y>vh+60) continue;
+    ctx.fillStyle='#cfeee0';
+    ctx.beginPath(); ctx.arc(x,y,4,0,TAU); ctx.fill();
+  }
+
+  // プレイヤー
+  {
+    const x=player.x-cx, y=player.y-cy;
+    ctx.fillStyle='rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.ellipse(x,y+9,12,5,0,0,TAU); ctx.fill();
+    ctx.fillStyle='#c9d4cd';
+    ctx.beginPath(); ctx.arc(x,y,player.r,0,TAU); ctx.fill();
+    ctx.fillStyle='#3a4741';
+    ctx.beginPath();
+    ctx.arc(x+Math.cos(player.ang)*5, y+Math.sin(player.ang)*5, 5.5,0,TAU); ctx.fill();
+  }
+
+  // ===== 暗闇レイヤー =====
+  const bo=state.blackout>0 ? clamp(state.blackout,0,1) : 0;
+  const L=state.lightScale*(1-bo*0.75);
+  dk.globalCompositeOperation='source-over';
+  dk.fillStyle='rgba(3,5,7,0.965)';
+  dk.fillRect(0,0,vw,vh);
+  dk.globalCompositeOperation='destination-out';
+  const px=player.x-cx, py=player.y-cy;
+  // 足元の淡い明かり
+  {
+    const r=115*L;
+    const g=dk.createRadialGradient(px,py,0,px,py,r);
+    g.addColorStop(0,'rgba(0,0,0,0.85)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    dk.fillStyle=g;
+    dk.beginPath(); dk.arc(px,py,r,0,TAU); dk.fill();
+  }
+  // 懐中電灯の円錐
+  {
+    const len=360*L;
+    const g=dk.createRadialGradient(px,py,18,px,py,len);
+    g.addColorStop(0,'rgba(0,0,0,0.95)');
+    g.addColorStop(0.65,'rgba(0,0,0,0.55)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    dk.fillStyle=g;
+    dk.beginPath();
+    dk.moveTo(px,py);
+    dk.arc(px,py,len,player.ang-0.52,player.ang+0.52);
+    dk.closePath(); dk.fill();
+  }
+  // アイテムの燐光は暗闇に小さな穴を開ける
+  for(const it of ITEMS){
+    if(it.got) continue;
+    const x=it.x-cx, y=it.y-cy;
+    if(x<-40||x>vw+40||y<-40||y>vh+40) continue;
+    const p=0.5+0.5*Math.sin(state.time*3+it.x);
+    const r=14+8*p;
+    const g=dk.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(0,0,0,0.8)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    dk.fillStyle=g;
+    dk.beginPath(); dk.arc(x,y,r,0,TAU); dk.fill();
+  }
+  // 門の明かり
+  if(state.got===8){
+    const gx=GATE.x-cx, gy=GATE.y-cy;
+    const g=dk.createRadialGradient(gx,gy,0,gx,gy,110);
+    g.addColorStop(0,'rgba(0,0,0,0.75)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    dk.fillStyle=g;
+    dk.beginPath(); dk.arc(gx,gy,110,0,TAU); dk.fill();
+  }
+  dk.globalCompositeOperation='source-over';
+  ctx.drawImage(dark,0,0);
+
+  // アイテムの緑の燐光（加算・暗闇の上）
+  ctx.globalCompositeOperation='lighter';
+  for(const it of ITEMS){
+    if(it.got) continue;
+    const x=it.x-cx, y=it.y-cy;
+    if(x<-40||x>vw+40||y<-40||y>vh+40) continue;
+    const p=0.5+0.5*Math.sin(state.time*3+it.x);
+    const near=state.nearItem===it;
+    const r=(near?26:16)+8*p;
+    const a=(near?0.55:0.3)+0.15*p;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,`rgba(143,224,176,${a})`);
+    g.addColorStop(1,'rgba(143,224,176,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+  }
+  ctx.globalCompositeOperation='source-over';
+
+  // 影の人影
+  if(state.shadow){
+    const s=state.shadow;
+    const prog=s.t/s.dur;
+    const a=Math.sin(prog*Math.PI)*0.30;
+    const sx=s.dir>0 ? lerp(-80,vw+80,prog) : lerp(vw+80,-80,prog);
+    ctx.fillStyle=`rgba(2,3,4,${a})`;
+    ctx.beginPath(); ctx.ellipse(sx,s.y,26,86,0,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx,s.y-96,17,0,TAU); ctx.fill();
+  }
+
+  // 霧（二層のドリフト）
+  const fs=reduceMotion?6:16;
+  drawFogLayer(state.time*fs, state.time*fs*0.6, 0.55);
+  drawFogLayer(-state.time*fs*0.7+130, state.time*fs*0.35+70, 0.35);
+
+  // ビネット
+  ctx.drawImage(vig,0,0);
+}
+function drawFogLayer(ox,oy,alpha){
+  ctx.globalAlpha=alpha;
+  const S=512;
+  const sx=((ox%S)+S)%S, sy=((oy%S)+S)%S;
+  for(let x=-sx;x<vw;x+=S){
+    for(let y=-sy;y<vh;y+=S){
+      ctx.drawImage(fogCv,x,y);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ================= エンディング ================= */
+function startEnding(){
+  state.over=true;
+  AU.bell();
+  setTimeout(()=>AU.bell(),1800);
+  $('hud').classList.remove('on');
+  const end=$('ending');
+  const box=$('endItems');
+  box.innerHTML='';
+  for(const it of ITEMS){
+    const s=document.createElement('span');
+    s.textContent=it.name;
+    box.appendChild(s);
+  }
+  end.classList.remove('hidden');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>end.classList.add('shown')));
+}
+$('btnRetry').addEventListener('click',()=>location.reload());
+
+/* ================= ループ ================= */
+let last=0;
+function loop(now){
+  if(!state.running) return;
+  const dt=Math.min((now-last)/1000,0.05);
+  last=now;
+  if(!state.over){
+    update(dt);
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+
+$('btnStart').addEventListener('click',()=>{
+  AU.start();
+  $('title').classList.add('hidden');
+  $('hud').classList.add('on');
+  state.running=true;
+  showArea(AREAS[0]);
+  toast('懐中電灯だけが頼りだ。<br>緑色にほのかに光るものを探して<span class="iname">「調べる」</span>。',5200);
+  last=performance.now();
+  requestAnimationFrame(loop);
+});
+
+/* デバッグ用フック */
+window.__game={state,player,ITEMS,walls,debris,GATE,update,doSearch,collides,startEnding};
+})();
+</script>
+</body>
+</html>
